@@ -18,7 +18,7 @@
                 {{ $post->identificacion }} <br>
                 <strong>Número de contacto:</strong> <br>
                 {{ $post->telefono }} <br>
-                <strong>Correo electrónico:</strong> <br>
+                <strong >Correo electrónico:</strong> <br>
                 {{ $post->email }} <br>
             </div>
 
@@ -74,13 +74,13 @@
         <div class="flex gap-6 overflow-auto">
             {{-- POSPAGO --}}
             <div class="border-2 border-gray-300 rounded-lg p-6">
-                <h1 class="text-xl font-bold mb-4 text-white text-center">Datos</h1>
+                <h1 class="text-xl font-bold mb-4 text-white text-center">Información</h1>
                 <div class="overflow-x-auto text-gray-700">
                     <table class="min-w-full bg-white shadow-md rounded-xl overflow-hidden">
                         <tbody class="divide-y divide-gray-200">
                             <tr><th class="px-6 py-3 text-left bg-gray-200">Observaciones:</th><td class="px-6 py-4">{{ $post->observaciones }}</td></tr>    
-                            <tr><th class="px-6 py-3 text-left bg-gray-200">Calibrada:</th><td class="px-6 py-4">{{ $post->Calibrado ? 'Sí' : 'No' }}</td></tr>
-                            <tr><th class="px-6 py-3 text-left bg-gray-200">Comentario:</th><td class="px-6 py-4">{{ $post->comentario }}</td></tr>    
+                            <tr><th class="px-6 py-3 text-left bg-gray-200">Calibrada:</th><td class="px-6 py-4">{{ $repCalibraciones->where('identificacion', $post->identificacion)->first()?->Calibrado ? 'Sí' : 'No' }}</td></tr>
+                            <tr><th class="px-6 py-3 text-left bg-gray-200">Comentario:</th><td class="px-6 py-4">{{ $repCalibraciones->where('identificacion', $post->identificacion)->first()?->comentario ?? '' }}</td></tr>    
                         </tbody>
                     </table>
                     
@@ -88,22 +88,39 @@
                 <br>
                 @auth
                     @if(auth()->user()->role === 'calibrador' || auth()->user()->role === 'admin')
-                    
-                    <label>Comentario:</label>
-                        <textarea name="comentario" id="comentario" rows="4" class="w-full border rounded-md p-2 text-gray-700"></textarea>
-                    
-                    <a href="{{ route('posts.edit', $post) }}"class="bg-yellow-400 text-white px-4 py-2 rounded hover:bg-yellow-500 transition">
-                            Marcar como calibrada
-                        </a>
-                        <br>
+
+                        <form action="{{ route('posts.calibrar', $post->id) }}" method="POST">
+                            @csrf
+                            @method('PUT')
+
+                            <label for="comentario">Comentario:</label>
+                            <textarea name="comentario" id="comentario" rows="4" class="w-full border rounded-md p-2 text-gray-700"></textarea>
+
+                            <button type="submit" class="bg-yellow-400 text-white px-4 py-2 rounded hover:bg-yellow-500 transition mt-2">
+                                Marcar como calibrada
+                            </button>
+                        </form>
                     @endif
                     @if(auth()->user()->role === 'supervisor' || auth()->user()->role === 'activador' || auth()->user()->role === 'admin')
                         <br>
-                        <label>Observaciones:</label>
-                        <textarea name="observaciones" id="observaciones" rows="4" class="w-full border rounded-md p-2 text-gray-700"></textarea>
-                        <a href="{{ route('posts.edit', $post) }}"class="bg-yellow-400 text-white px-4 py-2 rounded hover:bg-yellow-500 transition">
-                            Guardar
-                        </a>
+                        <label for="comentario">Observaciones:</label>
+                        <textarea name="comentario" id="comentario" rows="4" class="w-full border rounded-md p-2 text-gray-700"></textarea>
+                        <br>
+                        @php
+                            $calibracion = $repCalibraciones->firstWhere('id_venta', $post->id);
+                        @endphp
+
+                        @if($calibracion && $calibracion->Calibrado)
+                            <form action="{{ route('posts.activar', $post) }}" method="POST">
+                                @csrf
+                                @method('PUT')
+                                <button type="submit" class="bg-yellow-400 text-white px-4 py-2 rounded hover:bg-yellow-500 transition mt-2">
+                                    Marcar como activada
+                                </button>
+                            </form>
+                        @endif
+
+                        <br>
                     @endif
                 @endauth
             </div>

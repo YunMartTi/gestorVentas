@@ -26,7 +26,6 @@ class Post extends Model
     // Asignar los campos que no se puedan llenar y enviar desde el formulario
     protected $guarded = [
         'id',
-        'is_active',
     ];
     //Caster a fecha la columna published_at y is_active
     protected function cast(): array

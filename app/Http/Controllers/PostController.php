@@ -1,21 +1,49 @@
 <?php
 
-
 namespace App\Http\Controllers;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 
-use App\Models\Asesor;
 use App\Http\Requests\StorePostRequest;
 use App\Mail\PostCreatedMail;
+use App\Models\Asesor;
 use App\Models\Post;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
+use App\Models\Study;
 use App\Services\GeoCRService;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 
 class PostController extends Controller
 {
+    public function showStudy()
+    {
+        $estudios = DB::table('studies')->paginate(20);
+        return view('study.show', compact('estudios'));
+    }
+
+    public function createEstudio()
+    {
+        return view('study.create');
+    }
+
+    public function updateEstudio(Study $study)
+    {
+        $study->update(['respuesta' => request('respuesta')]);
+        return redirect()->back()->with('success', 'Venta marcada como activa.');
+    }
+
+    public function storeStudy(StorePostRequest $request)
+    {
+        Study::create(array_merge($request->only([
+            'cliente', 'tipo_documento', 'cedula', 'servicio'
+        ]), [
+            'respuesta' => '',
+            'fecha' => now(),
+            'asesor' => Auth::id(),
+        ]));
+        return redirect()->back()->with('success', 'Estudio creado con éxito.');
+    }
 
     public function Home()
     {
@@ -23,177 +51,166 @@ class PostController extends Controller
         $mes = request('mes', now()->month);
         $anio = request('anio', now()->year);
 
-        $inicioMes = Carbon::create($anio, $mes, 1)->startOfMonth();
-        $finMes = Carbon::create($anio, $mes, 1)->endOfMonth();
+        $inicioMes = Carbon::create($anio, $mes)->startOfMonth();
+        $finMes = Carbon::create($anio, $mes)->endOfMonth();
 
-        $tipos = ['Pospago', 'Multimedia', 'Gpon'];
-        $datos = [];
+        $repCalibraciones = DB::table('reporte_calibraciones')->get();
+        $datos = collect();
 
-        if ($user->role === 'admin') {
-            foreach ($tipos as $tipo) {
-                $activas = DB::table('posts')
-                    ->where('servicio', $tipo)
-                    ->where('estado', 'Activa')
-                    ->whereBetween('fecha', [$inicioMes, $finMes])
-                    ->count();
+        $query = DB::table('posts')
+            ->select('servicio', 'estado', DB::raw('count(*) as total'))
+            ->whereBetween('fecha', [$inicioMes, $finMes]);
 
-                $pendientes = DB::table('posts')
-                    ->where('servicio', $tipo)
-                    ->where('estado', 'Pendiente')
-                    ->whereBetween('fecha', [$inicioMes, $finMes])
-                    ->count();
+        if ($user->role !== 'admin') {
+            $asesor = DB::table('asesors')->where('user_id', $user->id)->firstOrFail();
+            $query->where('asesor', $asesor->nombre);
+        }
 
-                $caidas = DB::table('posts')
-                    ->where('servicio', $tipo)
-                    ->where('estado', 'Caida')
-                    ->whereBetween('fecha', [$inicioMes, $finMes])
-                    ->count();
+        $resultados = $query->groupBy('servicio', 'estado')->get();
 
-                $total = $activas + $pendientes + $caidas;
-
-                $datos[$tipo] = compact('activas', 'pendientes', 'caidas', 'total');
-            }
-        } else {
-            $asesor = DB::table('asesors')->where('user_id', $user->id)->first();
-            if (!$asesor) {
-                abort(403, 'Asesor no encontrado');
-            }
-
-            foreach ($tipos as $tipo) {
-                $activas = DB::table('posts')
-                    ->where('asesor', $asesor->nombre)
-                    ->where('servicio', $tipo)
-                    ->where('estado', 'Activa')
-                    ->whereBetween('fecha', [$inicioMes, $finMes])
-                    ->count();
-
-                $pendientes = DB::table('posts')
-                    ->where('asesor', $asesor->nombre)
-                    ->where('servicio', $tipo)
-                    ->where('estado', 'Pendiente')
-                    ->whereBetween('fecha', [$inicioMes, $finMes])
-                    ->count();
-
-                $caidas = DB::table('posts')
-                    ->where('asesor', $asesor->nombre)
-                    ->where('servicio', $tipo)
-                    ->where('estado', 'Caida')
-                    ->whereBetween('fecha', [$inicioMes, $finMes])
-                    ->count();
-
-                $total = $activas + $pendientes + $caidas;
-
-                $datos[$tipo] = compact('activas', 'pendientes', 'caidas', 'total');
-            }
+        foreach (['Pospago', 'Multimedia', 'Gpon'] as $tipo) {
+            $tipos = $resultados->where('servicio', $tipo);
+            $datos[$tipo] = [
+                'activas' => $tipos->where('estado', 'Activa')->first()?->total ?? 0,
+                'pendientes' => $tipos->where('estado', 'Pendiente')->first()?->total ?? 0,
+                'caidas' => $tipos->where('estado', 'Caida')->first()?->total ?? 0,
+                'total' => $tipos->sum('total'),
+                'repCalibraciones' => $repCalibraciones,
+            ];
         }
 
         return view('posts.home', [
             'datosPospago' => $datos['Pospago'],
             'datosMultimedia' => $datos['Multimedia'],
             'datosGpon' => $datos['Gpon'],
+            'repCalibraciones' => $repCalibraciones,
         ]);
     }
 
+    public function Activar(Post $post)
+    {
+        $post->update(['estado' => 'Activa']);
+        return redirect()->back()->with('success', 'Venta marcada como activa.');
+    }
+
+    public function Caida(Post $post)
+    {
+        $post->update(['estado' => 'Caida']);
+        return redirect()->back()->with('success', 'Venta marcada como caída.');
+    }
+
+    public function Pendiente(Post $post)
+    {
+        $post->update(['estado' => 'Pendiente']);
+        return redirect()->back()->with('success', 'Venta marcada como pendiente.');
+    }
+
+    public function Calibrar(Post $post, Request $request)
+    {
+        $request->validate(['comentario' => 'required|string|max:1000']);
+        $user = Auth::user();
+
+        $existe = DB::table('reporte_calibraciones')->where('id_venta', $post->id)->exists();
+        if (!$existe) {
+            DB::table('reporte_calibraciones')->insert([
+                'id_venta' => $post->id,
+                'identificacion' => $post->identificacion,
+                'Calibrado' => true,
+                'comentario' => $request->input('comentario'),
+                'calibrador' => $user->cedula,
+                'fecha_calibracion' => now(),
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Venta calibrada.');
+    }
+
+    public function Observaciones(Post $post, Request $request)
+    {
+        $post->update(['observaciones' => $request->input('observaciones')]);
+        return redirect()->back()->with('success', 'Observaciones guardadas.');
+    }
 
     public function Provincias(GeoCRService $geoCRService)
     {
-        $provincias = $geoCRService->getProvincias();
-        return view('posts.create', compact('provincias')); // o return response()->json($provincias);
+        return view('posts.create', [
+            'provincias' => $geoCRService->getProvincias(),
+        ]);
     }
-    
+
     public function Cantones($provinciaId, GeoCRService $geoCRService)
     {
-        $cantones = $geoCRService->getCantones($provinciaId);
-        return view('posts.create', compact('provincias', 'asesores'));
+        return response()->json($geoCRService->getCantones($provinciaId));
     }
 
     public function index(Request $request)
     {
-        $userId = Auth::id();
         $user = Auth::user();
+        $repCalibraciones = DB::table('reporte_calibraciones')->get();
 
         $query = DB::table('posts');
-
-        // Filtrar por asesor si no es admin
         if ($user->role !== 'admin') {
-            $asesor = DB::table('asesors')->where('user_id', $userId)->first();
-            if (!$asesor) {
-                abort(403, 'Asesor no encontrado');
-            }
+            $asesor = DB::table('asesors')->where('user_id', $user->id)->firstOrFail();
             $query->where('asesor', $asesor->nombre);
         }
-        // Filtro por tipo de venta
-       if ($request->filled('tipo')) {
-            $query->where('servicio', $request->tipo); // Asegúrate que el campo coincida
+
+        if ($request->filled('tipo')) {
+            $query->where('servicio', $request->tipo);
         }
 
-        if ($request->filled('mes') && $request->filled('anio')) {
-            $inicioMes = Carbon::create($request->anio, $request->mes, 1)->startOfMonth();
-            $finMes = Carbon::create($request->anio, $request->mes, 1)->endOfMonth();
-            $query->whereBetween('fecha', [$inicioMes, $finMes]);
-        }
-
-        // Filtro por cédula
         if ($request->filled('cedula')) {
-            $query->where('identificacion', 'like', '%' . $request->cedula . '%');
+            $query->where('identificacion', 'like', "%{$request->cedula}%");
         }
 
-        // Filtro por fecha exacta
         if ($request->filled('fecha')) {
             $query->whereDate('fecha', $request->fecha);
-        }
-        // Filtro por mes y año
-        elseif ($request->filled('mes') && $request->filled('anio')) {
-            $inicioMes = Carbon::create($request->anio, $request->mes, 1)->startOfMonth();
-            $finMes = Carbon::create($request->anio, $request->mes, 1)->endOfMonth();
-            $query->whereBetween('fecha', [$inicioMes, $finMes]);
-        }
-        // Si no se especifica nada, usar el mes actual
-        else {
-            $inicioMes = Carbon::now()->startOfMonth();
-            $finMes = Carbon::now()->endOfMonth();
+        } else {
+            $inicioMes = Carbon::create($request->anio ?? now()->year, $request->mes ?? now()->month)->startOfMonth();
+            $finMes = Carbon::create($request->anio ?? now()->year, $request->mes ?? now()->month)->endOfMonth();
             $query->whereBetween('fecha', [$inicioMes, $finMes]);
         }
 
         $posts = $query->orderByDesc('id')->paginate(30);
-
-        return view('posts.index', compact('posts'));
+        return view('posts.index', compact('posts', 'repCalibraciones'));
     }
-
 
     public function create(GeoCRService $geoCRService)
     {
-        $asesores = Asesor::orderBy('nombre')->get(); // 👈 correcto
-        $provincias = $geoCRService->getProvincias();
-        return view('posts.create', compact('provincias', 'asesores'));
+        return view('posts.create', [
+            'asesores' => Asesor::orderBy('nombre')->get(),
+            'provincias' => $geoCRService->getProvincias(),
+        ]);
     }
 
     public function Show(Post $post)
-    {   
-        //Bucar en el post en la base de datos mediante el id
-        // $post = Post::find($post);
-        return view('posts.show', compact('post'));
-    }
-    public function store(StorePostRequest $request) //StorePostRequest para llamar al form request
     {
-        Post::create($request->all());
+        return view('posts.show', [
+            'post' => $post,
+            'repCalibraciones' => DB::table('reporte_calibraciones')->get(),
+            'repActivaciones' => DB::table('reporte_activaciones')->get(),
+        ]);
+    }
+
+    public function store(StorePostRequest $request)
+    {
+        Post::create($request->validated());
         return redirect()->route('posts.index');
     }
+
     public function edit(Post $post)
     {
         return view('posts.edit', compact('post'));
     }
-    // Método para actualizar un post existente
+
     public function update(Request $request, Post $post)
     {
         $post->update($request->all());
         return redirect()->route('posts.show', $post)->with('success', 'Post editado con éxito');
-        }
+    }
+
     public function destroy(Post $post)
     {
-        // Eliminar el post de la base de datos
         $post->delete();
-        // Redirigir a la lista de posts
         return redirect()->route('posts.index')->with('success', 'Post eliminado con éxito');
     }
 }

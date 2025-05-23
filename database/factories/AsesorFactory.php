@@ -20,9 +20,18 @@ class AsesorFactory extends Factory
     {
             $nombre = $this->faker->name();
             $email = $this->faker->unique()->safeEmail();
+            
             $user = User::create([
+            'name' => $nombre,
+            'cedula' => $this->faker->unique()->numerify('#########'),
+            'telefono' => $this->faker->numerify('########'),
+            'prospeccion' => Str::random(4),
+            'supervisor' => $this->faker->name(),
             'email' => $email,
             'password' => bcrypt('password'),
+            'role' => 'asesor',
+            'supervisor' => $this->faker->name(),            
+            'created_at' => now(),
         ]);
 
         return [

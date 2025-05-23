@@ -42,7 +42,7 @@ class PostFactory extends Factory
             'monto_deposito' => $this->faker->randomFloat(2, 0, 500),
         
             'tipo_telefono' => $this->faker->randomElement(['Android', 'iPhone']),
-            'tipo_activacion' => $this->faker->randomElement(['Pospago', 'Prepago']),
+            'tipo' => $this->faker->randomElement(['Pospago', 'Multimedia', 'Gpon']),
             'numero_activar' => $this->faker->phoneNumber(),
             'canal_venta' => $this->faker->randomElement(['Tienda', 'Online', 'Televentas']),
         ];        

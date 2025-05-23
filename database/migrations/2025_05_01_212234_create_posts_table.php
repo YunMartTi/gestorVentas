@@ -35,14 +35,35 @@ return new class extends Migration
             $table->enum('deposito_garantia', ['si', 'no'])->default('no');
             $table->decimal('monto_deposito', 10, 2)->nullable();
             $table->string('tipo_telefono')->nullable();
-            $table->string('tipo_activacion')->nullable();
+            $table->string('tipo')->nullable();
             $table->string('numero_activar')->nullable();
             $table->string('canal_venta')->nullable();
             $table->timestamps();
             $table->string('estado')->default('Pendiente');
             $table->string('observaciones')->nullable();
+        });
+        Schema::create('reporte_activaciones', function (Blueprint $table) {
+            $table->id();
+            $table->string('id_venta');
+            $table->string('identificacion');
+            $table->string('activador');
+            $table->string('observaciones')->nullable();
+            $table->date('fecha_activacion')->default(DB::raw('CURRENT_DATE'));
+            
+        });
+
+        Schema::create('reporte_calibraciones', function (Blueprint $table) {
+            $table->id();
+            $table->string('identificacion');
+            $table->string('id_venta');
             $table->boolean('Calibrado')->default(false);
+            $table->string('calibrador');
             $table->string('comentario')->nullable();
+            $table->date('fecha_calibracion')->default(DB::raw('CURRENT_DATE'));
+        });
+
+        Schema::table('reporte_activaciones', function (Blueprint $table) {
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
         });
 
         Schema::create('asesors', function (Blueprint $table) {
@@ -54,6 +75,20 @@ return new class extends Migration
             $table->timestamps();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
         });
+
+        Schema::create('studies', function (Blueprint $table) {
+            $table->id();
+            $table->string('fecha')->default(DB::raw('CURRENT_DATE'));
+            $table->string('asesor');
+            $table->string('cliente');
+            $table->string('tipo_documento');
+            $table->string('cedula');
+            $table->string('servicio');
+            $table->string('respuesta')->nullable();
+            $table->boolean('realizado')->default(false);
+            $table->timestamps();
+            //$table->foreignId('user_id')->constrained()->onDelete('cascade');
+        });
     }
 
     /**
@@ -63,5 +98,9 @@ return new class extends Migration
     {
         Schema::dropIfExists('posts');
         Schema::dropIfExists('asesors');
+        Schema::dropIfExists('reporte_activaciones');
+        Schema::dropIfExists('reporte_calibraciones');
+        Schema::dropIfExists('asesors');
+
     }
 };

@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Study;
 use App\Models\User;
 use Database\Factories\AsesorFactory;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
@@ -21,6 +22,7 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             PostSeeder::class,
             AsesorSeeder::class, // ✅ Esto está bien
+            StudySeeder::class,
         ]);
 
         /* Se llama al método factory para crear 10 usuarios

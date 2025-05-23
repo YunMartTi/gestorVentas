@@ -23,8 +23,22 @@
                     </x-nav-link>
                 </div>
                 <!--Boton desplegable-->
+                @auth
+                    @if(auth()->user()->role === 'admin' || auth()->user()->role === 'supervisor')
+                        <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex ">
+                            <x-nav-link :href="route('profile.create')" :active="request()->routeIs('profile.create')">
+                                {{ __('Crear usuario') }}
+                            </x-nav-link>
+                        </div>
+                    @endif
+                @endauth
 
-                
+                <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex ">
+                    <x-nav-link :href="route('posts.showStudy')" :active="request()->routeIs('posts.showStudy')">
+                        {{ __('Estudios') }}
+                    </x-nav-link>
+                </div>
+
                 <div class="hidden sm:flex sm:ms-10 relative" x-data="{ open: false }">
                     <!--Boton desplegable-->
                 <button @click="open = !open" 
@@ -44,6 +58,7 @@
                     <a href="{{ route('posts.create', ['type' => 'gpon']) }}" 
                     class="block px-4 py-2 text-gray-700 hover:bg-gray-100">Gpon</a>
                 </div>
+
             </div>
 
                 
