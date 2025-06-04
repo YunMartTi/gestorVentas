@@ -35,6 +35,10 @@ class Post extends Model
             'is_active' => 'boolean',
         ];
     }
+    public function respaldo()
+    {
+        return $this->hasOne(RespaldoVenta::class, 'id_cliente', 'id');
+    }
     // Para poner todo lo que vaya a la columna title en minusculas
     protected function titLe(): Attribute
     {

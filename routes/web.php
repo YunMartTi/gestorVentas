@@ -1,6 +1,7 @@
 <?php
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\RespaldoController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -13,7 +14,7 @@ Route::get('/dashboard', function () {
 
 use App\Http\Middleware\RoleMiddleware;
 
-Route::middleware(['auth', 'role:asesor,admin'])->group(function () {
+Route::middleware(['auth', 'role:asesor,admin,calibrador,activador'])->group(function () {
     Route::get('/home', [PostController::class, 'home'])->name('home');
 
 
@@ -35,8 +36,9 @@ Route::middleware(['auth', 'role:asesor,admin'])->group(function () {
         Route::put('/{post}/activar', [PostController::class, 'Activar'])->name('posts.activar');
         Route::put('/{post}/calibrar', [PostController::class, 'Calibrar'])->name('posts.calibrar');
         Route::put('/{post}/guardar', [PostController::class, 'Guardar'])->name('posts.guardar');
+        Route::post('/respaldo/store', [RespaldoController::class, 'store'])->name('respaldo.store');
+        Route::get('/posts/respaldo/ver/{path}', [RespaldoController::class, 'getSignedUrl'])->where('path', '.*')->name('respaldo.ver');
 
-        // 🟡 ESTA DEBE IR AL FINAL del grupo "posts" porque es genérica
         Route::get('/{post}', [PostController::class, 'show'])->name('posts.show');
     });
 

@@ -89,8 +89,19 @@ return new class extends Migration
             $table->timestamps();
             //$table->foreignId('user_id')->constrained()->onDelete('cascade');
         });
-    }
 
+        Schema::create('respaldo_ventas', function (Blueprint $table) {
+            $table->id();
+            $table->string('id_cliente'); // o foreignId('post_id')->constrained()->onDelete('cascade');
+            $table->string('foto_frontal');   // URL del archivo en Supabase
+            $table->string('foto_posterior');
+            $table->string('foto_cliente');
+            $table->string('foto_sim')->nullable();
+            $table->string('visto_bueno_pdf')->nullable(); // también será una URL
+            $table->timestamps();
+        });
+    }
+    
     /**
      * Reverse the migrations.
      */

@@ -20,9 +20,15 @@ class UserFactory extends Factory
      */
     public function definition(): array
     {
+
+
         // Genera un usuario aleatorio (falso)
         return [
             'name' => fake()->name(),
+            'cedula' => fake()->unique()->numerify('###########'), // Genera un número de cédula aleatorio
+            'telefono' => fake()->unique()->numerify('300########'), // Genera un número de teléfono aleatorio
+            'prospeccion' => fake()->text($maxNbChars = 5),
+            'supervisor' => 'Yaoska',
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),

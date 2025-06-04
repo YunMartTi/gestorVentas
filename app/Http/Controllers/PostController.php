@@ -58,18 +58,18 @@ class PostController extends Controller
         $datos = collect();
 
         $query = DB::table('posts')
-            ->select('servicio', 'estado', DB::raw('count(*) as total'))
+            ->select('tipo', 'estado', DB::raw('count(*) as total'))
             ->whereBetween('fecha', [$inicioMes, $finMes]);
 
+        // Mostrar solo los posts del usuario si no es admin
         if ($user->role !== 'admin') {
-            $asesor = DB::table('asesors')->where('user_id', $user->id)->firstOrFail();
-            $query->where('asesor', $asesor->nombre);
+            $query->where('id', $user->id);
         }
 
-        $resultados = $query->groupBy('servicio', 'estado')->get();
+        $resultados = $query->groupBy('tipo', 'estado')->get();
 
         foreach (['Pospago', 'Multimedia', 'Gpon'] as $tipo) {
-            $tipos = $resultados->where('servicio', $tipo);
+            $tipos = $resultados->where('tipo', $tipo);
             $datos[$tipo] = [
                 'activas' => $tipos->where('estado', 'Activa')->first()?->total ?? 0,
                 'pendientes' => $tipos->where('estado', 'Pendiente')->first()?->total ?? 0,
@@ -86,6 +86,7 @@ class PostController extends Controller
             'repCalibraciones' => $repCalibraciones,
         ]);
     }
+
 
     public function Activar(Post $post)
     {
@@ -147,11 +148,11 @@ class PostController extends Controller
     {
         $user = Auth::user();
         $repCalibraciones = DB::table('reporte_calibraciones')->get();
-
+        
         $query = DB::table('posts');
+
         if ($user->role !== 'admin') {
-            $asesor = DB::table('asesors')->where('user_id', $user->id)->firstOrFail();
-            $query->where('asesor', $asesor->nombre);
+            $query->where('asesor', $user->id);
         }
 
         if ($request->filled('tipo')) {

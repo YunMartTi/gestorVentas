@@ -86,7 +86,6 @@
                     <th class="px-6 py-3">ID</th>
                     <th class="px-6 py-3">Fecha</th>
                     <th class="px-6 py-3">Cliente</th>
-                    <th class="px-6 py-3">Correo</th>
                     <th class="px-6 py-3">Estado</th>
                     <th class="px-6 py-3">Calibrado</th>
                     <th class="px-6 py-3">Observaciones</th>
@@ -99,10 +98,9 @@
                         <td class="px-6 py-4">{{ $post->id }}</td>
                         <td class="px-6 py-4">{{ $post->fecha }}</td>
                         <td class="px-6 py-4">{{ $post->cliente }}</td>
-                        <td class="px-6 py-4">{{ $post->email }}</td>
                         <td class="px-6 py-4">{{ $post->estado }}</td>
-                        <td class="px-6 py-4">{{ $repCalibraciones->where('identificacion', $post->identificacion)->first()?->Calibrado ? 'Sí' : 'No' }}</td>
-                        <td class="px-6 py-4">{{ $repCalibraciones->where('identificacion', $post->identificacion)->first()?->observaciones ?? '' }}</td>
+                        <td class="px-6 py-4">{{ $post->Calibrado ? 'Sí' : 'No' }}</td>
+                        <td class="px-6 py-4">{{ $post->observaciones }}</td>
                         <td class="px-6 py-4">
                             <a href="{{ route('posts.show', ['post' => $post->id]) }}" class="text-blue-600 hover:underline">Ver</a>
                         </td>

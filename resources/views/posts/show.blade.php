@@ -101,7 +101,7 @@
                             </button>
                         </form>
                     @endif
-                    @if(auth()->user()->role === 'supervisor' || auth()->user()->role === 'activador' || auth()->user()->role === 'admin')
+                    @if (in_array(auth()->user()->role, ['admin', 'supervisor', 'activador']))
                         <br>
                         <label for="comentario">Observaciones:</label>
                         <textarea name="comentario" id="comentario" rows="4" class="w-full border rounded-md p-2 text-gray-700"></textarea>
@@ -118,11 +118,108 @@
                                     Marcar como activada
                                 </button>
                             </form>
-                        @endif
-
+                        @endif     
                         <br>
+
                     @endif
                 @endauth
+                <form action="{{ route('respaldo.store') }}" method="POST" enctype="multipart/form-data" class="max-w-xl mx-auto bg-white p-6 rounded shadow">
+                                @csrf
+
+                                <input type="hidden" name="id_cliente" value="{{ $post->id }}">
+
+                                @php
+                                    $fields = [
+                                        'foto_frontal' => 'Foto frontal cédula',
+                                        'foto_posterior' => 'Foto posterior cédula',
+                                        'foto_cliente' => 'Foto cliente con SIM',
+                                        'foto_sim' => 'Foto del SIM',
+                                        'visto_bueno_pdf' => 'PDF de visto bueno',
+                                    ];
+                                @endphp
+
+                                @foreach ($fields as $name => $label)
+                                    <div class="mb-4">
+                                        <label class="block text-gray-700">{{ $label }}</label>
+                                        <div class="flex items-center gap-2">
+                                            <input 
+                                                type="file" 
+                                                name="{{ $name }}" 
+                                                id="{{ $name }}" 
+                                                @if (!Str::contains($name, 'pdf')) accept="image/*" @else accept=".pdf" @endif
+                                                class="w-full border rounded px-3 py-2 file-input"
+                                                @if (in_array($name, ['foto_frontal', 'foto_posterior', 'foto_cliente'])) required @endif
+                                            >
+                                            <span id="{{ $name }}_check" class="text-green-600 hidden">✅</span>
+                                        </div>
+                                    </div>
+                                @endforeach
+
+                                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Subir respaldo</button>
+                            </form>
+
+                            <script>
+                                document.addEventListener('DOMContentLoaded', function () {
+                                    const fields = ['foto_frontal', 'foto_posterior', 'foto_cliente', 'foto_sim', 'visto_bueno_pdf'];
+
+                                    fields.forEach(name => {
+                                        const input = document.getElementById(name);
+                                        const check = document.getElementById(name + '_check');
+
+                                        input.addEventListener('change', () => {
+                                            if (input.files.length > 0) {
+                                                check.classList.remove('hidden');
+                                            } else {
+                                                check.classList.add('hidden');
+                                            }
+                                        });
+                                    });
+                                });
+                            </script>
+
+                        <br>    <!-- Espacio para separación -->
+                            @if($post->respaldo)
+                                <div class="mt-6 bg-white p-6 rounded shadow">
+                                    <h2 class="text-lg font-bold mb-4 text-gray-700">Archivos Subidos</h2>
+
+                                    @php
+                                        $fields = [
+                                            'foto_frontal' => 'Foto frontal cédula',
+                                            'foto_posterior' => 'Foto posterior cédula',
+                                            'foto_cliente' => 'Foto cliente con SIM',
+                                            'foto_sim' => 'Foto del SIM',
+                                            'visto_bueno_pdf' => 'PDF de visto bueno',
+                                        ];
+                                    @endphp
+
+                                    @foreach ($fields as $field => $label)
+                                        @php $url = $post->respaldo->$field; @endphp
+                                        @if($url)
+                                            <div class="mb-4 text-gray-700">
+                                                <strong class="text-gray-800">{{ $label }}:</strong><br>
+
+                                                @php
+                                                    $urlWithoutQuery = explode('?', $url)[0];
+                                                    $path = Str::after($urlWithoutQuery, 'storage/v1/object/public/');
+                                                @endphp
+
+                                                @if(Str::endsWith($url, '.pdf'))
+                                                    <a href="{{ route('respaldo.ver', ['path' => $path]) }}" target="_blank">
+                                                        Ver PDF
+                                                    </a>
+                                                @else
+                                                    <a href="{{ route('respaldo.ver', ['path' => $path]) }}" target="_blank">
+                                                        Ver imagen segura
+                                                    </a>
+                                                @endif
+                                            </div>
+                                        @endif
+                                    @endforeach
+
+
+
+                                </div>
+                            @endif
             </div>
             
         </div>

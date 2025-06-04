@@ -21,7 +21,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             UserSeeder::class,
             PostSeeder::class,
-            AsesorSeeder::class, // ✅ Esto está bien
+            //AsesorSeeder::class, // ✅ Esto está bien
             StudySeeder::class,
         ]);
 
